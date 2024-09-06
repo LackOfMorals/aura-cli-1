@@ -45,8 +45,7 @@ func TestListInstances(t *testing.T) {
 	mockHandler.AssertCalledTimes(1)
 	mockHandler.AssertCalledWithMethod(http.MethodGet)
 
-	helper.AssertOutJson(`{
-		"data": [
+	helper.AssertOutJson(`[
 			{
 				"id": "2f49c2b3",
 				"name": "Production",
@@ -71,9 +70,7 @@ func TestListInstances(t *testing.T) {
 				"tenant_id": "YOUR_TENANT_ID",
 				"cloud_provider": "gcp"
 			}
-		]
-	}
-	`)
+		]`)
 }
 
 func TestListInstancesWithTenantId(t *testing.T) {
@@ -114,8 +111,7 @@ func TestListInstancesWithTenantId(t *testing.T) {
 	mockHandler.AssertCalledTimes(1)
 	mockHandler.AssertCalledWithMethod(http.MethodGet)
 
-	helper.AssertOutJson(`{
-		"data": [
+	helper.AssertOutJson(`[
 			{
 				"id": "2f49c2b3",
 				"name": "Production",
@@ -140,7 +136,5 @@ func TestListInstancesWithTenantId(t *testing.T) {
 				"tenant_id": "YOUR_TENANT_ID",
 				"cloud_provider": "gcp"
 			}
-		]
-	}
-	`)
+		]`)
 }

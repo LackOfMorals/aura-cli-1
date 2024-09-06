@@ -1,8 +1,10 @@
 package instance
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/neo4j/cli/neo4j/aura/internal/api"
 	"github.com/neo4j/cli/neo4j/aura/internal/output"
@@ -19,25 +21,28 @@ func NewListCmd() *cobra.Command {
 
 You can filter instances in a particular tenant using --tenant-id. If the tenant flag is not specified, this subcommand lists all instances a user has access to across all tenants.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var path string
-
-			if tenantId != "" {
-				path = fmt.Sprintf("/instances?tenantId=%s", tenantId)
-			} else {
-				path = "/instances"
+			aura, err := api.GetApiFromConfig(cmd)
+			if err != nil {
+				return fmt.Errorf("error in command %s", os.Args[1:])
 			}
 
-			resBody, statusCode, err := api.MakeRequest(cmd, http.MethodGet, path, nil)
+			instances, statusCode, err := aura.Instances.List(tenantId)
 			if err != nil {
-				return err
+				return fmt.Errorf("error in command %s: %v", os.Args[1:], err)
 			}
 
 			if statusCode == http.StatusOK {
-				err = output.PrintBody(cmd, resBody, []string{"id", "name", "tenant_id", "cloud_provider"})
+				jsonResponse, err := json.Marshal(instances)
 				if err != nil {
-					return err
+					return fmt.Errorf("error in command %s: %v", os.Args[1:], err)
+				}
+
+				err = output.PrintBody(cmd, jsonResponse, []string{"id", "name", "tenant_id", "cloud_provider"})
+				if err != nil {
+					return fmt.Errorf("error in command %s: %v", os.Args[1:], err)
 				}
 			}
+
 			return nil
 		},
 	}
