@@ -17,6 +17,10 @@ func NewCmd(version string) *cobra.Command {
 		Use:     "aura",
 		Short:   "Allows you to programmatically provision and manage your Aura instances",
 		Version: version,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// Silence usage help output on errors, whilst keeping that output for flag errors
+			cmd.SilenceUsage = true
+		},
 	}
 
 	cmd.AddCommand(config.NewCmd())

@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type AuraApiContext struct {
+type AuraApiConfig struct {
 	BaseUrl   string
 	Token     string
 	UserAgent string
@@ -21,55 +21,17 @@ type AuraApiContext struct {
 
 type AuraApi struct {
 	Instances *AuraInstancesApi
-	Config    *AuraApiContext
 }
 
-type AuraInstancesApi struct {
-	ctx *AuraApiContext
-}
-
-type InstancesGetResponse []struct {
-	Id            string `json:"id"`
-	Name          string `json:"name"`
-	TenantId      string `json:"tenant_id"`
-	CloudProvider string `json:"cloud_provider"`
-}
-
-func New(config *AuraApiContext) *AuraApi {
+func New(config *AuraApiConfig) *AuraApi {
 	return &AuraApi{
 		Instances: &AuraInstancesApi{
-			ctx: config,
+			config: config,
 		},
 	}
 }
 
-func (api *AuraInstancesApi) List(tenantId string) (response *InstancesGetResponse, status int, err error) {
-	var path string
-
-	if tenantId != "" {
-		path = fmt.Sprintf("/instances?tenantId=%s", tenantId)
-	} else {
-		path = "/instances"
-	}
-
-	responseBody, statusCode, err := api.ctx.makeRequest(http.MethodGet, path, nil)
-	if err != nil {
-		return nil, statusCode, err
-	}
-
-	var parsedBody struct {
-		Data InstancesGetResponse
-	}
-
-	err = json.Unmarshal(responseBody, &parsedBody)
-	if err != nil {
-		return nil, statusCode, fmt.Errorf("error parsing response of GET %s: %v", path, err)
-	}
-
-	return &parsedBody.Data, statusCode, nil
-}
-
-func (ctx *AuraApiContext) makeRequest(method string, path string, data map[string]any) (responseBody []byte, statusCode int, err error) {
+func (config *AuraApiConfig) makeRequest(method string, path string, data map[string]any) (responseBody []byte, statusCode int, err error) {
 	client := http.Client{}
 	var body io.Reader
 	if data == nil {
@@ -84,7 +46,7 @@ func (ctx *AuraApiContext) makeRequest(method string, path string, data map[stri
 		body = bytes.NewBuffer(jsonData)
 	}
 
-	u, _ := url.ParseRequestURI(ctx.BaseUrl)
+	u, _ := url.ParseRequestURI(config.BaseUrl)
 	u = u.JoinPath(path)
 	urlString := u.String()
 
@@ -93,7 +55,7 @@ func (ctx *AuraApiContext) makeRequest(method string, path string, data map[stri
 		return responseBody, 0, err
 	}
 
-	req.Header = ctx.getHeaders()
+	req.Header = config.getHeaders()
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -112,19 +74,18 @@ func (ctx *AuraApiContext) makeRequest(method string, path string, data map[stri
 		return responseBody, res.StatusCode, nil
 	}
 
-	return nil, res.StatusCode, ctx.handleError(res.StatusCode, responseBody)
+	return nil, res.StatusCode, config.handleError(res.StatusCode, responseBody)
 }
 
-func (config *AuraApiContext) getHeaders() http.Header {
+func (config *AuraApiConfig) getHeaders() http.Header {
 	return http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", config.Token)},
-		// "User-Agent":    {fmt.Sprintf(userAgent, version)},
-		"User-Agent": {config.UserAgent},
+		"User-Agent":    {config.UserAgent},
 	}
 }
 
-func (config *AuraApiContext) handleError(_statusCode int, responseBody []byte) error {
+func (config *AuraApiConfig) handleError(_statusCode int, responseBody []byte) error {
 	type ErrorResponse struct {
 		Errors []struct {
 			Message string
@@ -154,6 +115,9 @@ func GetApiFromConfig(cmd *cobra.Command) (*AuraApi, error) {
 	}
 
 	baseUrl, err := config.GetString("aura.base-url")
+	if err != nil {
+		return nil, err
+	}
 
 	token, err := getToken(cmd.Context())
 
@@ -166,7 +130,7 @@ func GetApiFromConfig(cmd *cobra.Command) (*AuraApi, error) {
 		return nil, errors.New("error fetching version from context")
 	}
 
-	return New(&AuraApiContext{
+	return New(&AuraApiConfig{
 		BaseUrl:   baseUrl,
 		Token:     token,
 		UserAgent: fmt.Sprintf(userAgent, version),
