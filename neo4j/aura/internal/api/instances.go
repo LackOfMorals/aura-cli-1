@@ -22,9 +22,9 @@ type InstanceGetResponse struct {
 	Type                  string `json:"type"`
 	Memory                string `json:"memory"`
 	Storage               string `json:"storage"`
-	CustomerManagedKeyId  string `json:"customer_managed_key_id"`
-	SecondariesCount      int    `json:"secondaries_count"`
-	CDCEnrichmentMode     string `json:"cdc_enrichment_mode"`
+	CustomerManagedKeyId  string `json:"customer_managed_key_id,omitempty"`
+	SecondariesCount      *int   `json:"secondaries_count,omitempty"` // Using pointer to handle null cases
+	CDCEnrichmentMode     string `json:"cdc_enrichment_mode,omitempty"`
 }
 
 type InstancesListResponse []struct {

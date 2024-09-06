@@ -74,7 +74,8 @@ func (config *AuraApiConfig) makeRequest(method string, path string, data map[st
 		return responseBody, res.StatusCode, nil
 	}
 
-	return nil, res.StatusCode, config.handleError(res.StatusCode, responseBody)
+	// TODO: use config.handleError instead
+	return nil, res.StatusCode, handleResponseError(res)
 }
 
 func (config *AuraApiConfig) getHeaders() http.Header {
